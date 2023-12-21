@@ -101,16 +101,22 @@ descriptions = {
     ),
 }
 
+output_folder = "generated_projects"  # Folder to contain all generated projects
+
 
 # Command to generate the project structure
 @cli.command()
 @click.argument("project_name")
-def init_project(project_name):
+def setup_project_structure(project_name):
+    init_project(project_name, output_folder)
+    click.echo(f"Project {project_name} has been initialized successfully.")
+
+
+def init_project(project_name, output_folder="."):
     """
     Initializes the project structure for a given project name.
     """
 
-    output_folder = "generated_projects"  # Folder to contain all generated projects
     project_path = os.path.join(
         output_folder, project_name
     )  # Path to the specific project
@@ -159,6 +165,86 @@ def init_project(project_name):
                     )
 
     click.echo(f"Project {project_path} has been initialized successfully.")
+
+
+# Function to check if Poetry is installed
+def is_poetry_installed():
+    try:
+        subprocess.run(
+            "poetry --version",
+            shell=True,
+            check=True,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+        )
+        return True
+    except subprocess.CalledProcessError:
+        return False
+
+
+import subprocess
+import os
+
+import json
+
+
+# New command to create environment
+@cli.command()
+@click.argument("project_name", default="my_project")
+def create_environment(project_name):
+    """
+    Installs and sets up a new project environment with Poetry, Commitizen, and pre-commit inside the generated_projects folder.
+    """
+    click.echo(
+        """Installs and sets up a new project environment with Poetry, Commitizen, and pre-commit inside the generated_projects folder."""
+    )
+
+    project_path = os.path.join(output_folder, project_name)
+
+    # Make sure the output folder exists
+    os.makedirs(output_folder, exist_ok=True)
+
+    # Check if Poetry is already installed, install if not
+    if not is_poetry_installed():
+        # Install Poetry globally (requires user to have curl installed)
+        subprocess.run(
+            "curl -sSL https://install.python-poetry.org | python -",
+            shell=True,
+            check=True,
+        )
+
+    # Navigate to the output folder and start a new project with Poetry
+    os.chdir(output_folder)
+    subprocess.run(f"poetry new {project_name}", shell=True, check=True)
+
+    # Navigate to the project directory
+    os.chdir(project_name)
+
+    # Install development dependencies
+    subprocess.run(
+        "poetry add --group dev commitizen pre-commit", shell=True, check=True
+    )
+
+    # Initialize Git and set up Commitizen
+    subprocess.run("git init", shell=True, check=True)
+    subprocess.run("poetry run cz init", shell=True, check=True)
+    # subprocess.run("poetry run cz init --yes", shell=True, check=True)
+
+    # Configure git alias
+    subprocess.run(
+        "git config --global alias.cz '!poetry run cz commit'", shell=True, check=True
+    )
+
+    # Initialize pre-commit and make initial commit
+    subprocess.run("git add .", shell=True, check=True)
+    subprocess.run("git cz", shell=True, check=True)
+
+    # Call the init_project function to set up the project structure
+    init_project(project_name)
+
+    click.echo(
+        f"Environment for {project_name} has been set up successfully in {project_path}."
+    )
 
 
 if __name__ == "__main__":
