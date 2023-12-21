@@ -5,6 +5,15 @@
   "version": "0.2.0",
   "configurations": [
     {
+      "name": "Create ENV",
+      "type": "python",
+      "request": "launch",
+      "program": "create_hex_project.py",
+      "args": ["create-environment", "hope"],
+      "console": "integratedTerminal",
+      "justMyCode": true
+    },
+    {
       "name": "Python: Current File",
       "type": "python",
       "request": "launch",
